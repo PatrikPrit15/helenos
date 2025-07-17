@@ -103,6 +103,7 @@ apps = [
 	'wavplay',
 	'websrv',
 	'wifi_supplicant',
+	'wildcards',
 ]
 
 if CONFIG_BUILD_SHARED_LIBS
