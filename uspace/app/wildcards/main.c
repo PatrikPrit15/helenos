@@ -5,15 +5,14 @@
 #include <stdlib.h>
 #include "dirent.h"
 #include "main.h"
-#include "string_datastructure.h"
 
 size_t min(size_t a, size_t b);
 int max(int a, int b);
-bool contains_wildcard(const char *pattern);
-StringList expand_patterns(const char *pattern, const char *path);
-StringList find_matches(const char *pattern, const char *dirpath);
-char *standardize_pattern(const char *pattern, const char *path);
+typedef void (*Callback)(char*);
 
+bool contains_wildcard(const char *pattern);
+void expand_patterns(const char *pattern, const char *path, Callback callback);
+void log_expansion(char *expanded_path);
 
 size_t min(size_t a, size_t b) { return (a < b ? a : b); }
 
@@ -63,11 +62,11 @@ bool wildcard_comp(char *pattern, char *file_name){ // fixme UTF-8
 	return result;
 }
 
-bool contains_wildcard(const char *pattern) {
+bool contains_wildcard(const char *pattern) { // fixme UTF-8
 	if (pattern == NULL) {
 		return false;
 	}
-	for (size_t i = 0; i < str_length(pattern); i++) {
+	for (size_t i = 0; i < str_length(pattern); i++) { 
 		if (pattern[i] == '*' || pattern[i] == '?') {
 			return true;
 		}
@@ -76,146 +75,68 @@ bool contains_wildcard(const char *pattern) {
 }
 
 
-StringList expand_patterns(const char *non_standard_pattern, const char *path) {
-	if (!contains_wildcard(non_standard_pattern)) { // Base case: no wildcards
-		StringList single_item_list;
-		list_init(&single_item_list);
-		list_add(&single_item_list, non_standard_pattern);
-		return single_item_list;
+void expand_patterns(const char *pattern, const char *path, Callback callback) {
+	// printf("Expanding pattern: '%s' in path: '%s'\n", pattern, path);
+	if (!contains_wildcard(pattern)) { // Base case: no wildcards, or end of pattern
+		char *full_path = NULL;
+		asprintf(&full_path, "%s%s", path, pattern);
+		callback(full_path);
+		return ;
 	} 
 
-	// Checking whether the pattern is something that needs to be executed
-	bool is_run_command = false;
-	char* non_standard_pattern_copy = (char *)non_standard_pattern;
-	if (non_standard_pattern_copy[0] == '.') {
-		is_run_command = true;
-		non_standard_pattern_copy++;
+	// Processing next token
+
+	char *start = str_dup(pattern);
+
+	// using absolute path
+	if (start[0] == '/') {
+		start++;
+		path = "/";
 	}
 
-	// Standardizing the pattern to absolute path
-	const char *standardized_pattern = standardize_pattern(non_standard_pattern_copy, path);
-	char *pattern = str_dup(standardized_pattern);
-
-
-	StringList expanded_list;
-	list_init(&expanded_list);
-	list_add(&expanded_list, "/");
-
-
-	// Splitting the pattern and processing each token
-	char *start = str_chr(pattern, '/') + 1;
-	while (*start != '\0') {
-		char *slash = str_chr(start, '/');
-		if (slash) {
-			*slash = '\0';
-		}
-
-		// Process the current token
-		printf("Processing token: %s\n", start);
-		StringList current_list;
-		list_init(&current_list);
-		for (size_t i = 0; i < expanded_list.size; i++) {
-			printf("  Expanded item %zu: %s\n", i, expanded_list.items[i]);
-			StringList matches = find_matches(start, expanded_list.items[i]);
-
-			for (size_t j = 0; j < matches.size; j++) {
-				printf("    Match %zu: %s\n", j, matches.items[j]);
-				// Create a new item by combining the expanded item and the match
-				list_add(&current_list, matches.items[j]);
-			}
-
-			list_free(&matches);
-		}
-
-
-		list_free(&expanded_list);
-		expanded_list = current_list;
-
-
-		if (!slash){
-			break;
-		}
-		start = slash + 1;
-	}
-	
-
-	if (is_run_command) { // If the pattern was a run command, prepend "." to each item
-		for (size_t i = 0; i < expanded_list.size; i++) {
-			char *new_item = NULL;
-			asprintf(&new_item, ".%s", expanded_list.items[i]);
-			free(expanded_list.items[i]);
-			expanded_list.items[i] = new_item;
-		}
+	char *slash = str_chr(start, '/');
+	if (slash) {
+		*slash = '\0';
 	}
 
-	return expanded_list;
-}
-
-// Function to find matches for a given pattern in a directory, to depth = 1, shallow search
-StringList find_matches(const char *pattern, const char *dirpath) {
-	StringList matches;
-	list_init(&matches);
-	printf("Finding matches for pattern '%s' in directory '%s'\n", pattern, dirpath);
-
-	DIR *dir = opendir(dirpath);
+	DIR *dir = opendir(path);
 	if (!dir) {
-		fprintf(stderr, "opendir failed on '%s'\n", dirpath);
-		return matches;
+		// fprintf(stderr, "opendir failed on '%s'\n", path);
+		return ;
 	}
 
 	struct dirent *entry;
 	while ((entry = readdir(dir))) {
-		printf("Checking entry: %s\n", entry->d_name);
-		if (wildcard_comp((char *)pattern, entry->d_name)) {
+		// printf("Checking entry: %s\n", entry->d_name);
+		if (wildcard_comp((char *)start, entry->d_name)) {
 			char *full_path = NULL;
-			if (dirpath[str_length(dirpath) - 1] == '/') {
-				asprintf(&full_path, "%s%s", dirpath, entry->d_name);
+			
+			if (slash) {
+				asprintf(&full_path, "%s%s/", path, entry->d_name);
 			} else {
-				asprintf(&full_path, "%s/%s", dirpath, entry->d_name);
+				asprintf(&full_path, "%s%s", path, entry->d_name);
 			}
-			list_add(&matches, full_path);
-			printf("Match found: %s\n", full_path);
+
+			expand_patterns(slash ? slash + 1 : "", full_path, callback);
 		}
 	}
 
 	closedir(dir);
-	return matches;
 }
 
-char* standardize_pattern(const char *pattern, const char *path) {
-	char *standardized_pattern = NULL;
-
-	if (pattern[0] != '/') {
-		if (path[str_length(path) - 1] == '/') {
-			asprintf(&standardized_pattern, "%s%s", path, pattern);
-		} else {
-			asprintf(&standardized_pattern, "%s/%s", path, pattern);
-		}
-	} else {
-		standardized_pattern = str_dup(pattern);
-	}
-
-	return standardized_pattern;
+void log_expansion(char *expanded_path) {
+	printf("Expanded pattern: '%s'\n", expanded_path);
 }
 
 int main(int argc, char *argv[]){
 	const char *pattern = ".";
-	const char *path = "/";
-	if (argc > 2) {
+	const char *path = "";
+	if (argc > 1) {
 		pattern = argv[1];
-		path = argv[2];
 	}
 
 
-	StringList expanded = expand_patterns(pattern, path);
-
-
-	printf("Expanded patterns:\n");
-	for (size_t i = 0; i < expanded.size; i++) {
-		printf("%s\n", expanded.items[i]);
-	}
-
-	list_free(&expanded);
+	expand_patterns(pattern, path, log_expansion);
 
     return 0;
 }

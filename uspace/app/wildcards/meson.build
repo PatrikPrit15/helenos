@@ -1,7 +1,7 @@
 
 pcut_dep = dependency('pcut', required: false)
 
-src = files(['main.c','string_datastructure.c'])
+src = files(['main.c'])
 
 if pcut_dep.found()
   test_sources = ['wildcardsTest.c', 'main.c']
