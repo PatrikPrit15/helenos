@@ -65,11 +65,15 @@ src = files(
 	'scli.c',
 	'tok.c',
 	'util.c',
+	'../../lib/wildcards/wildcards.c',
+
 )
+
 
 test_src = files(
 	'tok.c',
 	'test/toktest.c',
+	'../../lib/wildcards/wildcards.c',
 )
 
 # TODO: install this file somewhere sane

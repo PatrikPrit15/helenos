@@ -1,8 +1,8 @@
 #include <pcut/pcut.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include "main.h"
 #include <stdlib.h>
+#include "../wildcards.h"
 
 PCUT_INIT;
 

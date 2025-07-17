@@ -122,6 +122,8 @@ libs = [
 
 	'ui',
 	'vt',
+
+	'wildcards',
 ]
 
 # Generated list of include directory paths

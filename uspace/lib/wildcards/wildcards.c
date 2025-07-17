@@ -3,22 +3,22 @@
 #include <str.h>
 #include <mem.h>
 #include <stdlib.h>
+#include <errno.h>
 #include "dirent.h"
-#include "main.h"
+#include "wildcards.h"
+
 
 size_t min(size_t a, size_t b);
 int max(int a, int b);
-typedef void (*Callback)(char*);
+typedef errno_t (*Callback)(char *, void *arg);
+
 
 bool contains_wildcard(const char *pattern);
-void expand_patterns(const char *pattern, const char *path, Callback callback);
-void log_expansion(char *expanded_path);
 
 size_t min(size_t a, size_t b) { return (a < b ? a : b); }
-
 int max(int a, int b) { return (a > b ? a : b); }
 
-bool wildcard_comp(char *pattern, char *file_name){ // fixme UTF-8
+bool wildcard_comp(const char *pattern, const char *file_name){ // fixme UTF-8
 	const size_t pattern_len = str_length(pattern) + 1;
 	const size_t file_name_len = str_length(file_name) + 1;
 
@@ -62,32 +62,39 @@ bool wildcard_comp(char *pattern, char *file_name){ // fixme UTF-8
 	return result;
 }
 
-bool contains_wildcard(const char *pattern) { // fixme UTF-8
+bool contains_wildcard(const char *pattern) {
 	if (pattern == NULL) {
 		return false;
 	}
-	for (size_t i = 0; i < str_length(pattern); i++) { 
-		if (pattern[i] == '*' || pattern[i] == '?') {
-			return true;
-		}
+	if (str_chr(pattern, '*') != NULL || str_chr(pattern, '?') != NULL) {
+		return true;
 	}
 	return false;
 }
 
 
-void expand_patterns(const char *pattern, const char *path, Callback callback) {
+
+errno_t expand_wildcard_patterns(const char *pattern, const char *path, Callback callback, void* arg) {
 	// printf("Expanding pattern: '%s' in path: '%s'\n", pattern, path);
-	if (!contains_wildcard(pattern)) { // Base case: no wildcards, or end of pattern
+	if (!contains_wildcard(pattern)) { // Base case: no wildcards or end of pattern
 		char *full_path = NULL;
-		asprintf(&full_path, "%s%s", path, pattern);
-		callback(full_path);
-		return ;
-	} 
+		if (asprintf(&full_path, "%s%s", path, pattern) < 0) {
+			return ENOMEM;
+		}
+		// printf("Expanding to: '%s'\n", full_path);
+		errno_t rc = callback(full_path, arg);
+		free(full_path);
+		return rc;
+	}
 
 	// Processing next token
 
-	char *start = str_dup(pattern);
+	char *start_orig = str_dup(pattern);
+	if (start_orig == NULL) {
+		return ENOMEM;
+	}
 
+	char *start = start_orig;
 	// using absolute path
 	if (start[0] == '/') {
 		start++;
@@ -99,44 +106,43 @@ void expand_patterns(const char *pattern, const char *path, Callback callback) {
 		*slash = '\0';
 	}
 
+
 	DIR *dir = opendir(path);
 	if (!dir) {
 		// fprintf(stderr, "opendir failed on '%s'\n", path);
-		return ;
+		free(start_orig);
+		return 0; // Directory not found 
 	}
 
 	struct dirent *entry;
+	errno_t rc = EOK;
 	while ((entry = readdir(dir))) {
 		// printf("Checking entry: %s\n", entry->d_name);
 		if (wildcard_comp((char *)start, entry->d_name)) {
 			char *full_path = NULL;
 			
 			if (slash) {
-				asprintf(&full_path, "%s%s/", path, entry->d_name);
+				if (asprintf(&full_path, "%s%s/", path, entry->d_name) < 0) {
+					rc = ENOMEM;
+					break;
+				}
 			} else {
-				asprintf(&full_path, "%s%s", path, entry->d_name);
+				if (asprintf(&full_path, "%s%s", path, entry->d_name) < 0) {
+					rc = ENOMEM;
+					break;
+				}
 			}
 
-			expand_patterns(slash ? slash + 1 : "", full_path, callback);
+			rc = expand_wildcard_patterns(slash ? slash + 1 : "", full_path, callback, arg);
+			free(full_path);
+			if (rc != EOK) {
+				break;
+			}
 		}
 	}
 
 	closedir(dir);
+	free(start_orig);
+	return rc;
 }
 
-void log_expansion(char *expanded_path) {
-	printf("Expanded pattern: '%s'\n", expanded_path);
-}
-
-int main(int argc, char *argv[]){
-	const char *pattern = ".";
-	const char *path = "";
-	if (argc > 1) {
-		pattern = argv[1];
-	}
-
-
-	expand_patterns(pattern, path, log_expansion);
-
-    return 0;
-}

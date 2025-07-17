@@ -31,8 +31,10 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <errno.h>
-
 #include "tok.h"
+#include "lib/wildcards/wildcards.h"
+#include "stdio.h"
+
 
 /* Forward declarations of static functions */
 static char32_t tok_get_char(tokenizer_t *);
@@ -42,6 +44,35 @@ static errno_t tok_push_token(tokenizer_t *);
 static bool tok_pending_chars(tokenizer_t *);
 static errno_t tok_finish_string(tokenizer_t *);
 static void tok_start_token(tokenizer_t *, token_type_t);
+
+static errno_t char2tok_pushback(char *text, void *arg)
+{
+	tokenizer_t *tok = (tokenizer_t *) arg;
+
+	if (tok->outtok_offset >= tok->outtok_size)
+		return EOVERFLOW;
+
+	if (tok->outbuf_offset + str_size(text) + 1 >= tok->outbuf_size)
+		return EOVERFLOW;
+
+	str_cpy(tok->outbuf + tok->outbuf_offset,
+	        tok->outbuf_size - tok->outbuf_offset, text);
+
+	token_t *tokinfo = &tok->outtok[tok->outtok_offset++];
+	tokinfo->type = tok->current_type;
+	tokinfo->text = tok->outbuf + tok->outbuf_offset;
+	tokinfo->byte_start = tok->last_in_offset;
+	tokinfo->byte_length = str_size(text);
+	tokinfo->char_start = tok->last_in_char_offset;
+	tokinfo->char_length = str_length(text);
+
+	tok->outbuf_offset += str_size(text) + 1;
+	tok->outbuf_last_start = tok->outbuf_offset;
+
+	return EOK;
+}
+
+
 
 /** Initialize the token parser
  *
@@ -102,10 +133,22 @@ errno_t tok_tokenize(tokenizer_t *tok, size_t *tokens_length)
 			 * there are several spaces in the input.
 			 */
 			if (tok_pending_chars(tok)) {
-				rc = tok_push_token(tok);
+				tok->outbuf[tok->outbuf_offset] = '\0';
+				char *text = tok->outbuf + tok->outbuf_last_start;
+				const char *ctext = str_dup(text);
+				// printf("Pushed token: '%s'\n", ctext);
+				rc = expand_wildcard_patterns(ctext, "", char2tok_pushback, tok);
+				free((void *)ctext); 
+				// rc = tok_push_token(tok);
 				if (rc != EOK) {
+					printf("Error pushing token: %i\n",rc);
 					return rc;
 				}
+
+				// Update position info for next token
+				tok->last_in_offset = tok->in_offset;
+				tok->last_in_char_offset = tok->in_char_offset;
+				tok->outbuf_last_start = tok->outbuf_offset;
 			}
 			tok_start_token(tok, TOKTYPE_SPACE);
 			/* Eat all the spaces */
@@ -166,10 +209,22 @@ errno_t tok_tokenize(tokenizer_t *tok, size_t *tokens_length)
 
 	/* Push the last token */
 	if (tok_pending_chars(tok)) {
-		rc = tok_push_token(tok);
+		tok->outbuf[tok->outbuf_offset] = '\0';
+		char *text = tok->outbuf + tok->outbuf_last_start;
+		const char *ctext = str_dup(text);
+		// printf("Pushed token: '%s'\n", ctext);
+		rc = expand_wildcard_patterns(ctext, "", char2tok_pushback, tok);
+		free((void *)ctext);
+		// rc = tok_push_token(tok);
 		if (rc != EOK) {
+			printf("Error pushing token: %i\n", rc);
 			return rc;
 		}
+
+		// Update position info for next token
+		tok->last_in_offset = tok->in_offset;
+		tok->last_in_char_offset = tok->in_char_offset;
+		tok->outbuf_last_start = tok->outbuf_offset;
 	}
 
 	*tokens_length = tok->outtok_offset;
