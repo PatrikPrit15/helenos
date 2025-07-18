@@ -46,7 +46,7 @@ static errno_t tok_finish_string(tokenizer_t *);
 static void tok_start_token(tokenizer_t *, token_type_t);
 
 static errno_t push_expanded_wildcard_token(char *text, void *arg) {
-	/* callback that pushes tokens after wildcard expansion */
+	/* Callback that pushes tokens after wildcard expansion */
 
 	tokenizer_t *tok = (tokenizer_t *) arg;
 
@@ -73,8 +73,8 @@ static errno_t push_expanded_wildcard_token(char *text, void *arg) {
 	return EOK;
 }
 
+/** Function that expands current token (if it contains wildcards) and pushes it to the buffer */
 static errno_t wildcard_token_expand(tokenizer_t *tok){
-	/* expand current token and push it to buffer */
 
 	tok->outbuf[tok->outbuf_offset] = '\0';
 	char *text = tok->outbuf + tok->outbuf_last_start;
