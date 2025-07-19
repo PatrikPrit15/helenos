@@ -13,8 +13,6 @@ int max(int a, int b);
 typedef errno_t (*Callback)(char *, void *arg);
 
 
-bool contains_wildcard(const char *pattern);
-
 size_t min(size_t a, size_t b) { return (a < b ? a : b); }
 int max(int a, int b) { return (a > b ? a : b); }
 

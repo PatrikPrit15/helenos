@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include "../wildcards.h"
 
+
 PCUT_INIT;
 
 
@@ -61,6 +62,20 @@ PCUT_TEST(additional_edge_cases)
 	PCUT_ASSERT_TRUE(wildcard_comp("*abc", "ababc"));
 	PCUT_ASSERT_TRUE(wildcard_comp("*abc", "abcabc"));
 }
+
+PCUT_TEST(contains_wildcard)
+{
+	PCUT_ASSERT_TRUE(contains_wildcard("a*b"));
+	PCUT_ASSERT_TRUE(contains_wildcard("a?b"));
+	PCUT_ASSERT_FALSE(contains_wildcard("abc"));
+	PCUT_ASSERT_FALSE(contains_wildcard(""));
+	PCUT_ASSERT_TRUE(contains_wildcard("*"));
+	PCUT_ASSERT_TRUE(contains_wildcard("?"));
+	PCUT_ASSERT_TRUE(contains_wildcard("a?b?c"));
+	PCUT_ASSERT_TRUE(contains_wildcard("a*b*c"));
+}
+
+
 
 PCUT_MAIN();
 

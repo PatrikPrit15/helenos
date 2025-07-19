@@ -45,16 +45,17 @@ static bool tok_pending_chars(tokenizer_t *);
 static errno_t tok_finish_string(tokenizer_t *);
 static void tok_start_token(tokenizer_t *, token_type_t);
 
+/**  Callback that pushes tokens after wildcard expansion */
 static errno_t push_expanded_wildcard_token(char *text, void *arg) {
-	/* Callback that pushes tokens after wildcard expansion */
-
 	tokenizer_t *tok = (tokenizer_t *) arg;
 
-	if (tok->outtok_offset >= tok->outtok_size)
+	if (tok->outtok_offset >= tok->outtok_size){
 		return EOVERFLOW;
+	}
 
-	if (tok->outbuf_offset + str_size(text) + 1 >= tok->outbuf_size)
+	if (tok->outbuf_offset + str_size(text) + 1 >= tok->outbuf_size){
 		return EOVERFLOW;
+	}
 
 	str_cpy(tok->outbuf + tok->outbuf_offset,
 	        tok->outbuf_size - tok->outbuf_offset, text);
@@ -75,7 +76,6 @@ static errno_t push_expanded_wildcard_token(char *text, void *arg) {
 
 /** Function that expands current token (if it contains wildcards) and pushes it to the buffer */
 static errno_t wildcard_token_expand(tokenizer_t *tok){
-
 	tok->outbuf[tok->outbuf_offset] = '\0';
 	char *text = tok->outbuf + tok->outbuf_last_start;
 	const char *ctext = str_dup(text);
