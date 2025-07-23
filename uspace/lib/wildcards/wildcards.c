@@ -20,8 +20,10 @@ int max(int a, int b) { return (a > b ? a : b); }
 static size_t utf8_to_codepoints(const char *utf8, uint32_t **out_cp) {
     size_t len = str_length(utf8);
     uint32_t *cp = malloc((len + 1) * sizeof(uint32_t));
-    if (!cp)
+    if (!cp){
         exit(ENOMEM);
+	}
+	memset(cp, 0, (len + 1) * sizeof(uint32_t)); 
 
     size_t offset = 0;
     size_t count = 0;
@@ -34,7 +36,7 @@ static size_t utf8_to_codepoints(const char *utf8, uint32_t **out_cp) {
 }
 
 /** Returns whether wildcard pattern matches with provided target string */
-bool wildcard_comp(const char *pattern, const char *target_string){ //! fixme UTF-8
+bool wildcard_comp(const char *pattern, const char *target_string){ 
     uint32_t *pattern_cp = NULL;
     uint32_t *target_string_cp = NULL;
 
@@ -64,14 +66,14 @@ bool wildcard_comp(const char *pattern, const char *target_string){ //! fixme UT
 			size_t j = id_sum - i;
 
 			if (pattern_cp[i] == '*'){
-				dp[i + 1][j] = dp[i + 1][j] | dp[i][j];
-				dp[i][j + 1] = dp[i][j + 1] | dp[i][j];
-				dp[i + 1][j + 1] = dp[i + 1][j + 1] | dp[i][j];
+				dp[i + 1][j] |= dp[i][j];
+				dp[i][j + 1] |= dp[i][j];
+				dp[i + 1][j + 1] |= dp[i][j];
 			} else if (pattern_cp[i] == '?') {
-				dp[i + 1][j + 1] = dp[i + 1][j + 1] | dp[i][j];
+				dp[i + 1][j + 1] |=  dp[i][j];
 			} else {
 				if (pattern_cp[i] == target_string_cp[j]){
-					dp[i + 1][j + 1] = dp[i + 1][j + 1] | dp[i][j];
+					dp[i + 1][j + 1] |= dp[i][j];
 				}
 			}
 			//printf("%d %d -> %d\n", i,j, dp[i][j]);
