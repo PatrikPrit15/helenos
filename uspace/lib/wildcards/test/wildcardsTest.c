@@ -75,6 +75,21 @@ PCUT_TEST(contains_wildcard)
 	PCUT_ASSERT_TRUE(contains_wildcard("a*b*c"));
 }
 
+PCUT_TEST(question_mark_wildcard)
+{
+	PCUT_ASSERT_TRUE(wildcard_comp("a?c", "abc"));
+	PCUT_ASSERT_TRUE(wildcard_comp("?", "a"));
+	PCUT_ASSERT_FALSE(wildcard_comp("?", ""));
+	PCUT_ASSERT_FALSE(wildcard_comp("?", "ab"));
+	PCUT_ASSERT_TRUE(wildcard_comp("??", "ab"));
+	PCUT_ASSERT_FALSE(wildcard_comp("??", "a"));
+	PCUT_ASSERT_TRUE(wildcard_comp("a?*", "abc"));
+	PCUT_ASSERT_TRUE(wildcard_comp("?*", "abc"));
+	PCUT_ASSERT_FALSE(wildcard_comp("a?c", "ac"));      
+	PCUT_ASSERT_TRUE(wildcard_comp("a?*", "ab"));       
+	PCUT_ASSERT_FALSE(wildcard_comp("a?c", "abbc"));    
+}
+
 
 
 PCUT_MAIN();

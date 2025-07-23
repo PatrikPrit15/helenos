@@ -24,14 +24,18 @@ bool wildcard_comp(const char *pattern, const char *target_string){ //! fixme UT
 	/*
 	 * Dynamic programming comparator for wildcard matching 
 	 */
-	bool **dp = malloc((pattern_len + 1) * sizeof(bool *)); //todo 1x malloc
-	for (size_t i = 0; i < pattern_len + 1; i++) {
-		dp[i] = malloc((target_string_len + 1) * sizeof(bool));
-		for (size_t j = 0; j < target_string_len + 1; j++) {
-			dp[i][j] = 0;
-		}
+
+	bool **dp = malloc((pattern_len + 1) * sizeof(bool *) + (pattern_len + 1) * (target_string_len + 1) * sizeof(bool));
+	if (dp == NULL) {
+		exit(ENOMEM); 
 	}
-	dp[0][0] = 1;
+	bool *data = (bool *)(dp + pattern_len + 1);
+	for (size_t i = 0; i <= pattern_len; i++) {
+		dp[i] = data + i * (target_string_len + 1);
+	}
+	memset(data, 0, (pattern_len + 1) * (target_string_len + 1) * sizeof(bool));
+	dp[0][0] = true;
+
 
 	for (size_t id_sum = 0; id_sum <= pattern_len + target_string_len - 2; id_sum++){
 		for (size_t i = max(0, id_sum - target_string_len + 1); i <= min(pattern_len - 1, id_sum); i++){
@@ -40,6 +44,8 @@ bool wildcard_comp(const char *pattern, const char *target_string){ //! fixme UT
 			if (pattern[i] == '*'){
 				dp[i + 1][j] = dp[i + 1][j] | dp[i][j];
 				dp[i][j + 1] = dp[i][j + 1] | dp[i][j];
+				dp[i + 1][j + 1] = dp[i + 1][j + 1] | dp[i][j];
+			} else if (pattern[i] == '?') {
 				dp[i + 1][j + 1] = dp[i + 1][j + 1] | dp[i][j];
 			} else {
 				if (pattern[i] == target_string[j]){
@@ -52,10 +58,6 @@ bool wildcard_comp(const char *pattern, const char *target_string){ //! fixme UT
 
 	bool result = dp[pattern_len - 1][target_string_len - 1];
 
-	// Free allocated memory
-	for (size_t i = 0; i < pattern_len + 1; i++) {
-		free(dp[i]);
-	}
 	free(dp);
 
 	return result;
