@@ -90,6 +90,17 @@ PCUT_TEST(question_mark_wildcard)
 	PCUT_ASSERT_FALSE(wildcard_comp("a?c", "abbc"));    
 }
 
+PCUT_TEST(utf8_wildcard_tests)
+{
+    PCUT_ASSERT_TRUE(wildcard_comp("čau*", "čaučkovanie"));
+    PCUT_ASSERT_FALSE(wildcard_comp("*ďeň", "pekný deň"));
+    PCUT_ASSERT_TRUE(wildcard_comp("pä?eň", "päťeň"));
+    PCUT_ASSERT_FALSE(wildcard_comp("pä?eň", "pápeň"));
+    PCUT_ASSERT_TRUE(wildcard_comp("ž*š*", "žlté šaty"));
+    PCUT_ASSERT_FALSE(wildcard_comp("ž?š", "žlté šaty"));
+    PCUT_ASSERT_TRUE(wildcard_comp("Γειά*σου*", "Γειά σου Κόσμε"));
+    PCUT_ASSERT_FALSE(wildcard_comp("Γειά?σου*", "Γεια σου Κόσμε"));
+}
 
 
 PCUT_MAIN();

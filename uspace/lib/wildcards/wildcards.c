@@ -16,15 +16,32 @@ typedef errno_t (*Callback)(char *, void *arg);
 size_t min(size_t a, size_t b) { return (a < b ? a : b); }
 int max(int a, int b) { return (a > b ? a : b); }
 
+/** Convert UTF-8 string to array of Unicode codepoints */
+static size_t utf8_to_codepoints(const char *utf8, uint32_t **out_cp) {
+    size_t len = str_length(utf8);
+    uint32_t *cp = malloc((len + 1) * sizeof(uint32_t));
+    if (!cp)
+        exit(ENOMEM);
+
+    size_t offset = 0;
+    size_t count = 0;
+    while (count < len) {
+        uint32_t ch = str_decode(utf8, &offset, str_lsize(utf8, len));
+        cp[count++] = ch;
+    }
+    *out_cp = cp;
+    return len;
+}
+
 /** Returns whether wildcard pattern matches with provided target string */
 bool wildcard_comp(const char *pattern, const char *target_string){ //! fixme UTF-8
-	const size_t pattern_len = str_length(pattern) + 1;
-	const size_t target_string_len = str_length(target_string) + 1;
+    uint32_t *pattern_cp = NULL;
+    uint32_t *target_string_cp = NULL;
 
-	/*
-	 * Dynamic programming comparator for wildcard matching 
-	 */
+    size_t pattern_len = utf8_to_codepoints(pattern, &pattern_cp) + 1;
+    size_t target_string_len  = utf8_to_codepoints(target_string, &target_string_cp) + 1;
 
+	
 	bool **dp = malloc((pattern_len + 1) * sizeof(bool *) + (pattern_len + 1) * (target_string_len + 1) * sizeof(bool));
 	if (dp == NULL) {
 		exit(ENOMEM); 
@@ -35,20 +52,25 @@ bool wildcard_comp(const char *pattern, const char *target_string){ //! fixme UT
 	}
 	memset(data, 0, (pattern_len + 1) * (target_string_len + 1) * sizeof(bool));
 	dp[0][0] = true;
+	
+	
+	/*
+	 * Dynamic programming comparator for wildcard matching 
+	 */
 
 
 	for (size_t id_sum = 0; id_sum <= pattern_len + target_string_len - 2; id_sum++){
 		for (size_t i = max(0, id_sum - target_string_len + 1); i <= min(pattern_len - 1, id_sum); i++){
 			size_t j = id_sum - i;
 
-			if (pattern[i] == '*'){
+			if (pattern_cp[i] == '*'){
 				dp[i + 1][j] = dp[i + 1][j] | dp[i][j];
 				dp[i][j + 1] = dp[i][j + 1] | dp[i][j];
 				dp[i + 1][j + 1] = dp[i + 1][j + 1] | dp[i][j];
-			} else if (pattern[i] == '?') {
+			} else if (pattern_cp[i] == '?') {
 				dp[i + 1][j + 1] = dp[i + 1][j + 1] | dp[i][j];
 			} else {
-				if (pattern[i] == target_string[j]){
+				if (pattern_cp[i] == target_string_cp[j]){
 					dp[i + 1][j + 1] = dp[i + 1][j + 1] | dp[i][j];
 				}
 			}
