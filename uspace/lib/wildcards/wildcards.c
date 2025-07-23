@@ -81,6 +81,8 @@ bool wildcard_comp(const char *pattern, const char *target_string){ //! fixme UT
 	bool result = dp[pattern_len - 1][target_string_len - 1];
 
 	free(dp);
+	free(pattern_cp);
+	free(target_string_cp);
 
 	return result;
 }
