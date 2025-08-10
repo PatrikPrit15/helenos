@@ -10,7 +10,6 @@
 
 size_t min(size_t a, size_t b);
 int max(int a, int b);
-typedef errno_t (*Callback)(char *, void *arg);
 
 
 size_t min(size_t a, size_t b) { return (a < b ? a : b); }
@@ -116,7 +115,7 @@ bool contains_wildcard(const char *pattern) {
 
 
 /** Function that expands wildcard pattern and pushes all expanded items to callback */
-errno_t expand_wildcard_patterns(const char *pattern, const char *path, Callback callback, void* arg) {
+errno_t expand_wildcard_patterns(const char *pattern, const char *path, wildcards_match_found_callback_t callback, void* arg) {
 	// printf("Expanding pattern: '%s' in path: '%s'\n", pattern, path);
 	if (!contains_wildcard(pattern)) { // Base case: no wildcards or end of pattern
 		char *full_path = NULL;
