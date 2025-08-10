@@ -79,9 +79,12 @@ static errno_t wildcard_token_expand(tokenizer_t *tok){
 	tok->outbuf[tok->outbuf_offset] = '\0';
 	char *text = tok->outbuf + tok->outbuf_last_start;
 	const char *ctext = str_dup(text);
+	if (ctext == NULL) {
+		return ENOMEM;
+	}
 	// printf("Pushed token: '%s'\n", ctext);
 	errno_t rc = expand_wildcard_patterns(ctext, "", push_expanded_wildcard_token, tok);
-	free((void *)ctext); 
+	free((char *)ctext);
 	// rc = tok_push_token(tok);
 	if (rc != EOK) {
 		printf("Error pushing token: %i\n",rc);

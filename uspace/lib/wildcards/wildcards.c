@@ -17,11 +17,11 @@ size_t min(size_t a, size_t b) { return (a < b ? a : b); }
 int max(int a, int b) { return (a > b ? a : b); }
 
 /** Convert UTF-8 string to array of Unicode codepoints */
-static size_t utf8_to_codepoints(const char *utf8, uint32_t **out_cp) {
+static errno_t utf8_to_codepoints(const char *utf8, uint32_t **out_cp) {
     size_t len = str_length(utf8);
     uint32_t *cp = malloc((len + 1) * sizeof(uint32_t));
     if (!cp){
-        exit(ENOMEM);
+        return ENOMEM;
 	}
 	memset(cp, 0, (len + 1) * sizeof(uint32_t)); 
 
@@ -32,21 +32,34 @@ static size_t utf8_to_codepoints(const char *utf8, uint32_t **out_cp) {
         cp[count++] = ch;
     }
     *out_cp = cp;
-    return len;
+    return EOK;
 }
 
 /** Returns whether wildcard pattern matches with provided target string */
-bool wildcard_comp(const char *pattern, const char *target_string){ 
+errno_t wildcard_comp(const char *pattern, const char *target_string, bool *result){ 
     uint32_t *pattern_cp = NULL;
     uint32_t *target_string_cp = NULL;
 
-    size_t pattern_len = utf8_to_codepoints(pattern, &pattern_cp) + 1;
-    size_t target_string_len  = utf8_to_codepoints(target_string, &target_string_cp) + 1;
+	errno_t rc = utf8_to_codepoints(pattern, &pattern_cp);
+	if (rc != EOK) {
+		free(pattern_cp);
+		return rc;
+	}
+    size_t pattern_len = str_length(pattern)+1;
+	rc = utf8_to_codepoints(target_string, &target_string_cp);
+	if (rc != EOK) {
+		free(pattern_cp);
+		free(target_string_cp);
+		return rc;
+	}
+    size_t target_string_len = str_length(target_string)+1;
 
 	
 	bool **dp = malloc((pattern_len + 1) * sizeof(bool *) + (pattern_len + 1) * (target_string_len + 1) * sizeof(bool));
 	if (dp == NULL) {
-		exit(ENOMEM); 
+		free(pattern_cp);
+		free(target_string_cp);
+		return ENOMEM;
 	}
 	bool *data = (bool *)(dp + pattern_len + 1);
 	for (size_t i = 0; i <= pattern_len; i++) {
@@ -80,13 +93,14 @@ bool wildcard_comp(const char *pattern, const char *target_string){
 		}
 	}
 
-	bool result = dp[pattern_len - 1][target_string_len - 1];
+	*result = dp[pattern_len - 1][target_string_len - 1];
 
 	free(dp);
 	free(pattern_cp);
 	free(target_string_cp);
 
-	return result;
+
+	return EOK;
 }
 
 /** Returns whether string contains wildcard '*' or '?' */
@@ -146,7 +160,14 @@ errno_t expand_wildcard_patterns(const char *pattern, const char *path, Callback
 	errno_t rc = EOK;
 	while ((entry = readdir(dir))) {
 		// printf("Checking entry: %s\n", entry->d_name);
-		if (wildcard_comp((char *)start, entry->d_name)) {
+		bool wildcard_match = false;
+		rc = wildcard_comp((char *)start, entry->d_name, &wildcard_match);
+		if (rc != EOK) {
+			closedir(dir);
+			free(start_orig);
+			return rc; // Error in wildcard comparison
+		}
+		if (wildcard_match) {
 			char *full_path = NULL;
 			
 			if (slash) {

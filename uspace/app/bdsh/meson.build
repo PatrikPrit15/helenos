@@ -27,7 +27,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'clui', 'fmtutil' ]
+deps = [ 'clui', 'fmtutil', 'wildcards' ]
 includes += include_directories('.', 'cmds', 'cmds/builtins', 'cmds/modules')
 src = files(
 	'cmds/builtin_cmds.c',
@@ -65,7 +65,6 @@ src = files(
 	'scli.c',
 	'tok.c',
 	'util.c',
-	'../../lib/wildcards/wildcards.c',
 
 )
 
@@ -73,7 +72,6 @@ src = files(
 test_src = files(
 	'tok.c',
 	'test/toktest.c',
-	'../../lib/wildcards/wildcards.c',
 )
 
 # TODO: install this file somewhere sane
