@@ -179,6 +179,17 @@ PCUT_TEST(wildcards_expand_tests)
 	PCUT_ASSERT_TRUE(list_check_at_index(&matches, 0, "/data/wildcards_test/čaute.txt"));
 	PCUT_ASSERT_INT_EQUALS(1, matches.count);
 	free_list(&matches);
+
+    // 5. Recursive wildcard **
+    matches = (match_list_t){0};
+    expand_wildcard_patterns("**/*.txt", "/data/wildcards_test/", collect_match, &matches);
+    PCUT_ASSERT_TRUE(list_check_at_index(&matches, 0, "/data/wildcards_test/file.txt"));
+    PCUT_ASSERT_TRUE(list_check_at_index(&matches, 1, "/data/wildcards_test/spaced name.txt"));
+    PCUT_ASSERT_TRUE(list_check_at_index(&matches, 2, "/data/wildcards_test/čaute.txt"));
+    PCUT_ASSERT_TRUE(list_check_at_index(&matches, 3, "/data/wildcards_test/dir/file_in_dir.txt"));
+    PCUT_ASSERT_TRUE(list_check_at_index(&matches, 4, "/data/wildcards_test/dir/nested/deep.txt"));
+    PCUT_ASSERT_INT_EQUALS(5, matches.count);
+    free_list(&matches);
 }
 
 

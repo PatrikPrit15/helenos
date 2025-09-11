@@ -155,9 +155,15 @@ errno_t expand_wildcard_patterns(const char *pattern, const char *path, wildcard
 		return 0; // Directory not found 
 	}
 
-	struct dirent *entry;
 	errno_t rc = EOK;
-	while ((entry = readdir(dir))) {
+
+	// Recursive search with variable depth, check current directory
+	if (str_cmp(start, "**") == 0) {
+		rc = expand_wildcard_patterns(slash ? slash + 1 : "", path, callback, arg);
+	}
+
+	struct dirent *entry;
+	while ((entry = readdir(dir)) && rc == EOK) {
 		// printf("Checking entry: %s\n", entry->d_name);
 		bool wildcard_match = false;
 		rc = wildcard_comp((char *)start, entry->d_name, &wildcard_match);
@@ -169,7 +175,6 @@ errno_t expand_wildcard_patterns(const char *pattern, const char *path, wildcard
 		if (wildcard_match) {
 			char *full_path = NULL;
 
-			
 			if (slash) {
 				if (asprintf(&full_path, "%s%s/", path, entry->d_name) < 0) {
 					rc = ENOMEM;
@@ -182,16 +187,11 @@ errno_t expand_wildcard_patterns(const char *pattern, const char *path, wildcard
 				}
 			}
 
-			// // Recursive search with variable depth
-			// if (str_cmp(start, "**") == 0) {
-			// 	rc = expand_wildcard_patterns(pattern, full_path, callback, arg);
-			// 	if (rc != EOK) {
-			// 		free(full_path);
-			// 		break;
-			// 	}
-			// }
-
-			rc = expand_wildcard_patterns(slash ? slash + 1 : "", full_path, callback, arg);
+			if (str_cmp(start, "**") == 0) { // Recursive case with **
+				rc = expand_wildcard_patterns(pattern, full_path, callback, arg);
+			} else { // Normal case
+				rc = expand_wildcard_patterns(slash ? slash + 1 : "", full_path, callback, arg);
+			}
 			free(full_path);
 			if (rc != EOK) {
 				break;
