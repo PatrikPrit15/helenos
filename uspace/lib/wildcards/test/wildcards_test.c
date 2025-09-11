@@ -9,77 +9,67 @@
 PCUT_INIT;
 
 
-static void assert_wildcard_true(const char *pattern, const char *text) {
+static bool test_wildcard_comp(const char *pattern, const char *text) {
     bool res = false;
     PCUT_ASSERT_ERRNO_VAL(EOK, wildcard_comp(pattern, text, &res));
-	if (res == false) {
-		fprintf(stderr, "Wildcard match failed for pattern '%s' and text '%s'\n", pattern, text);
-	}	
-    PCUT_ASSERT_TRUE(res);
+	return res;
 }
 
-static void assert_wildcard_false(const char *pattern, const char *text) {
-    bool res = true;
-    PCUT_ASSERT_ERRNO_VAL(EOK, wildcard_comp(pattern, text, &res));
-	if (res == true) {
-		fprintf(stderr, "Wildcard match succeeded for pattern '%s' and text '%s', but expected false\n", pattern, text);
-	}
-    PCUT_ASSERT_FALSE(res);
-}
+
 
 PCUT_TEST(basic_and_user_cases)
 {
-    assert_wildcard_false("aho", "Ah");
-    assert_wildcard_true("n*", "nie");
-    assert_wildcard_true("a*c", "abc");
-    assert_wildcard_true("a*c", "axc");
-    assert_wildcard_true("a*c", "ac");
-    assert_wildcard_false("abc", "ab");
-    assert_wildcard_false("ab", "abc");
-    assert_wildcard_true("ab", "ab");
-    assert_wildcard_true("*", "hello");
-    assert_wildcard_true("he*lo", "hello");
-    assert_wildcard_true("he*lo", "helo");
-    assert_wildcard_true("*abc*", "xabcy");
-    assert_wildcard_false("abc", "xyz");
+    PCUT_ASSERT_FALSE(test_wildcard_comp("aho", "Ah"));
+    PCUT_ASSERT_TRUE(test_wildcard_comp("n*", "nie"));
+    PCUT_ASSERT_TRUE(test_wildcard_comp("a*c", "abc"));
+    PCUT_ASSERT_TRUE(test_wildcard_comp("a*c", "axc"));
+    PCUT_ASSERT_TRUE(test_wildcard_comp("a*c", "ac"));
+    PCUT_ASSERT_FALSE(test_wildcard_comp("abc", "ab"));
+    PCUT_ASSERT_FALSE(test_wildcard_comp("ab", "abc"));
+    PCUT_ASSERT_TRUE(test_wildcard_comp("ab", "ab"));
+    PCUT_ASSERT_TRUE(test_wildcard_comp("*", "hello"));
+    PCUT_ASSERT_TRUE(test_wildcard_comp("he*lo", "hello"));
+    PCUT_ASSERT_TRUE(test_wildcard_comp("he*lo", "helo"));
+    PCUT_ASSERT_TRUE(test_wildcard_comp("*abc*", "xabcy"));
+    PCUT_ASSERT_FALSE(test_wildcard_comp("abc", "xyz"));
 }
 
 PCUT_TEST(empty_string_cases)
 {
-    assert_wildcard_true("", "");
-    assert_wildcard_true("*", "");
-    assert_wildcard_false("", "a");
-    assert_wildcard_false("a", "");
-    assert_wildcard_false("a*", "");
+    PCUT_ASSERT_TRUE(test_wildcard_comp("", ""));
+    PCUT_ASSERT_TRUE(test_wildcard_comp("*", ""));
+    PCUT_ASSERT_FALSE(test_wildcard_comp("", "a"));
+    PCUT_ASSERT_FALSE(test_wildcard_comp("a", ""));
+    PCUT_ASSERT_FALSE(test_wildcard_comp("a*", ""));
 }
 
 PCUT_TEST(multiple_and_consecutive_wildcard_cases)
 {
-    assert_wildcard_true("a**b", "axxb");
-    assert_wildcard_true("a**b", "ab");
-    assert_wildcard_true("*a*b*", "zzza_b_zzz");
-    assert_wildcard_true("*a*b*", "ab");
-    assert_wildcard_true("ab**", "abxyz");
-    assert_wildcard_true("***", "abc");
+    PCUT_ASSERT_TRUE(test_wildcard_comp("a**b", "axxb"));
+    PCUT_ASSERT_TRUE(test_wildcard_comp("a**b", "ab"));
+    PCUT_ASSERT_TRUE(test_wildcard_comp("*a*b*", "zzza_b_zzz"));
+    PCUT_ASSERT_TRUE(test_wildcard_comp("*a*b*", "ab"));
+    PCUT_ASSERT_TRUE(test_wildcard_comp("ab**", "abxyz"));
+    PCUT_ASSERT_TRUE(test_wildcard_comp("***", "abc"));
 }
 
 PCUT_TEST(complex_and_backtracking_cases)
 {
-    assert_wildcard_true("*a*b", "sssaaasbb");
-    assert_wildcard_false("*a*b", "sssaccc");
-    assert_wildcard_true("a*d", "abcd");
-    assert_wildcard_false("a*d", "ab_c_e");
-    assert_wildcard_true("a*a*a", "aaaa");
-    assert_wildcard_false("f*f*", "f");
-    assert_wildcard_true("*b", "aabab");
+    PCUT_ASSERT_TRUE(test_wildcard_comp("*a*b", "sssaaasbb"));
+    PCUT_ASSERT_FALSE(test_wildcard_comp("*a*b", "sssaccc"));
+    PCUT_ASSERT_TRUE(test_wildcard_comp("a*d", "abcd"));
+    PCUT_ASSERT_FALSE(test_wildcard_comp("a*d", "ab_c_e"));
+    PCUT_ASSERT_TRUE(test_wildcard_comp("a*a*a", "aaaa"));
+    PCUT_ASSERT_FALSE(test_wildcard_comp("f*f*", "f"));
+    PCUT_ASSERT_TRUE(test_wildcard_comp("*b", "aabab"));
 }
 
 PCUT_TEST(additional_edge_cases)
 {
-    assert_wildcard_true("*bc", "abc");
-    assert_wildcard_true("*", "*");
-    assert_wildcard_true("*abc", "ababc");
-    assert_wildcard_true("*abc", "abcabc");
+    PCUT_ASSERT_TRUE(test_wildcard_comp("*bc", "abc"));
+    PCUT_ASSERT_TRUE(test_wildcard_comp("*", "*"));
+    PCUT_ASSERT_TRUE(test_wildcard_comp("*abc", "ababc"));
+    PCUT_ASSERT_TRUE(test_wildcard_comp("*abc", "abcabc"));
 }
 
 PCUT_TEST(contains_wildcard)
@@ -96,29 +86,29 @@ PCUT_TEST(contains_wildcard)
 
 PCUT_TEST(question_mark_wildcard)
 {
-    assert_wildcard_true("a?c", "abc");
-    assert_wildcard_true("?", "a");
-    assert_wildcard_false("?", "");
-    assert_wildcard_false("?", "ab");
-    assert_wildcard_true("??", "ab");
-    assert_wildcard_false("??", "a");
-    assert_wildcard_true("a?*", "abc");
-    assert_wildcard_true("?*", "abc");
-    assert_wildcard_false("a?c", "ac");
-    assert_wildcard_true("a?*", "ab");
-    assert_wildcard_false("a?c", "abbc");
+    PCUT_ASSERT_TRUE(test_wildcard_comp("a?c", "abc"));
+    PCUT_ASSERT_TRUE(test_wildcard_comp("?", "a"));
+    PCUT_ASSERT_FALSE(test_wildcard_comp("?", ""));
+    PCUT_ASSERT_FALSE(test_wildcard_comp("?", "ab"));
+    PCUT_ASSERT_TRUE(test_wildcard_comp("??", "ab"));
+    PCUT_ASSERT_FALSE(test_wildcard_comp("??", "a"));
+    PCUT_ASSERT_TRUE(test_wildcard_comp("a?*", "abc"));
+    PCUT_ASSERT_TRUE(test_wildcard_comp("?*", "abc"));
+    PCUT_ASSERT_FALSE(test_wildcard_comp("a?c", "ac"));
+    PCUT_ASSERT_TRUE(test_wildcard_comp("a?*", "ab"));
+    PCUT_ASSERT_FALSE(test_wildcard_comp("a?c", "abbc"));
 }
 
 PCUT_TEST(utf8_wildcard_tests)
 {
-    assert_wildcard_true("čau*", "čaučkovanie");
-    assert_wildcard_false("*ďeň", "pekný deň");
-    assert_wildcard_true("pä?eň", "päťeň");
-    assert_wildcard_false("pä?eň", "pápeň");
-    assert_wildcard_true("ž*š*", "žlté šaty");
-    assert_wildcard_false("ž?š", "žlté šaty");
-    assert_wildcard_true("Γειά*σου*", "Γειά σου Κόσμε");
-    assert_wildcard_false("Γειά?σου*", "Γεια σου Κόσμε");
+    PCUT_ASSERT_TRUE(test_wildcard_comp("čau*", "čaučkovanie"));
+    PCUT_ASSERT_FALSE(test_wildcard_comp("*ďeň", "pekný deň"));
+    PCUT_ASSERT_TRUE(test_wildcard_comp("pä?eň", "päťeň"));
+    PCUT_ASSERT_FALSE(test_wildcard_comp("pä?eň", "pápeň"));
+    PCUT_ASSERT_TRUE(test_wildcard_comp("ž*š*", "žlté šaty"));
+    PCUT_ASSERT_FALSE(test_wildcard_comp("ž?š", "žlté šaty"));
+    PCUT_ASSERT_TRUE(test_wildcard_comp("Γειά*σου*", "Γειά σου Κόσμε"));
+    PCUT_ASSERT_FALSE(test_wildcard_comp("Γειά?σου*", "Γεια σου Κόσμε"));
 }
 
 

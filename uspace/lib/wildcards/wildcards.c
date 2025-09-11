@@ -168,6 +168,7 @@ errno_t expand_wildcard_patterns(const char *pattern, const char *path, wildcard
 		}
 		if (wildcard_match) {
 			char *full_path = NULL;
+
 			
 			if (slash) {
 				if (asprintf(&full_path, "%s%s/", path, entry->d_name) < 0) {
@@ -180,6 +181,15 @@ errno_t expand_wildcard_patterns(const char *pattern, const char *path, wildcard
 					break;
 				}
 			}
+
+			// // Recursive search with variable depth
+			// if (str_cmp(start, "**") == 0) {
+			// 	rc = expand_wildcard_patterns(pattern, full_path, callback, arg);
+			// 	if (rc != EOK) {
+			// 		free(full_path);
+			// 		break;
+			// 	}
+			// }
 
 			rc = expand_wildcard_patterns(slash ? slash + 1 : "", full_path, callback, arg);
 			free(full_path);
