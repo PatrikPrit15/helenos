@@ -26,6 +26,6 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-src = files(['wildcards.c'])
+src = files(['src/wildcards.c'])
 
-test_src = files(['test/wildcards_test.c', 'wildcards.c'])
+test_src = files(['test/wildcards_test.c', 'src/wildcards.c'])

@@ -33,7 +33,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include "dirent.h"
-#include "wildcards.h"
+#include "wildcards/wildcards.h"
 
 
 size_t min(size_t a, size_t b);

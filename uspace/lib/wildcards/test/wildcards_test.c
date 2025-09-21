@@ -31,7 +31,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <str.h>
-#include "../wildcards.h"
+#include "../include/wildcards/wildcards.h"
 
 
 PCUT_INIT;

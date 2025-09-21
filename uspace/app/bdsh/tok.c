@@ -32,7 +32,7 @@
 #include <stddef.h>
 #include <errno.h>
 #include "tok.h"
-#include "lib/wildcards/wildcards.h"
+#include "wildcards/wildcards.h"
 #include "stdio.h"
 
 
