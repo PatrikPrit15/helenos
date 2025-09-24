@@ -76,7 +76,6 @@ errno_t wildcard_comp(const char *pattern, const char *target_string, bool *resu
 	rc = utf8_to_codepoints(target_string, &target_string_cp);
 	if (rc != EOK) {
 		free(pattern_cp);
-		free(target_string_cp);
 		return rc;
 	}
     size_t target_string_len = str_length(target_string)+1;
